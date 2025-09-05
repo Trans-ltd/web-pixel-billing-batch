@@ -1,5 +1,5 @@
 import axios from 'axios';
-import pLimit, { LimitFunction } from 'p-limit';
+import pLimit from 'p-limit';
 import { ShopifySession } from '../types/billing';
 
 export interface UsageChargeResult {
@@ -44,7 +44,7 @@ interface GraphQLResponse {
 
 export class ShopifyBillingService {
   private apiVersion: string;
-  private concurrencyLimit: LimitFunction;
+  private concurrencyLimit: ReturnType<typeof pLimit>;
   private maxRetries: number;
   private retryDelay: number;
 
@@ -236,7 +236,12 @@ export class ShopifyBillingService {
     query: string,
     variables: Record<string, unknown> = {}
   ): Promise<T> {
-    const url = `https://${session.shop}/admin/api/${this.apiVersion}/graphql.json`;
+    // Ensure shop domain has .myshopify.com suffix
+    const shopDomain = session.shop.includes('.myshopify.com') 
+      ? session.shop 
+      : `${session.shop}.myshopify.com`;
+    
+    const url = `https://${shopDomain}/admin/api/${this.apiVersion}/graphql.json`;
     
     try {
       const response = await axios.post<T>(
