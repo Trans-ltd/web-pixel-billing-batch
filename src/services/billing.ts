@@ -54,6 +54,8 @@ export class BillingService {
       // Generate billing records
       const billingRecords = this.generateBillingRecords(sessions, pageViews, targetDate);
       console.log(`Generated ${billingRecords.length} billing records`);
+      
+      let chargeResults: any[] = [];
 
       // Insert billing records to BigQuery first
       if (billingRecords.length > 0) {
@@ -72,7 +74,7 @@ export class BillingService {
           billingRecords.map(record => [record.shop, record.billing_amount])
         );
         
-        const chargeResults = await this.shopifyBillingService.chargeShops(sessions, chargeMap);
+        chargeResults = await this.shopifyBillingService.chargeShops(sessions, chargeMap);
         
         // Update records with Shopify charge results
         const updatedRecords: BillingRecord[] = billingRecords.map(record => {
@@ -109,8 +111,11 @@ export class BillingService {
       console.log(`- Total page views: ${totalPageViews.toLocaleString()}`);
       console.log(`- Total billing amount: $${totalAmount.toFixed(2)}`);
 
+
     } catch (error) {
       console.error('Error in daily billing process:', error);
+      
+      
       throw error;
     }
   }
@@ -178,4 +183,5 @@ export class BillingService {
       console.log(`- ${record.shop}: ${record.page_views.toLocaleString()} views = $${record.billing_amount}`);
     });
   }
+
 }
