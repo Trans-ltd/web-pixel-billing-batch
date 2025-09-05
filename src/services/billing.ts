@@ -3,7 +3,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { BigQueryService } from './bigquery';
 import { ShopifyBillingService } from './shopifyBilling';
-import { BillingRecord, BillingConfig, ShopifySession, PageViewEvent } from '../types/billing';
+import { BillingRecord, BillingConfig, ShopifySession, PageViewEvent, ShopBillingResult } from '../types/billing';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -23,7 +23,24 @@ export class BillingService {
     };
   }
 
-  async processDailyBilling(): Promise<void> {
+  async processDailyBilling(): Promise<{
+    success: boolean;
+    targetDate: string;
+    skipped: boolean;
+    skipReason?: string;
+    activeSessions: number;
+    shopsWithPageViews: number;
+    billingRecordsGenerated: number;
+    totalPageViews: number;
+    totalAmount: number;
+    chargeResults?: any[];
+    shopResults?: ShopBillingResult[];
+    errorDetails?: {
+      message: string;
+      timestamp: string;
+      stack?: string;
+    };
+  }> {
     try {
       console.log('Starting daily billing process...');
       
@@ -31,12 +48,6 @@ export class BillingService {
       const targetDate = this.getTargetBillingDate();
       console.log(`Processing billing for date: ${targetDate}`);
 
-      // Check if billing already processed for this date
-      const existingRecords = await this.bigQueryService.getBillingRecordsForDate(targetDate);
-      if (existingRecords.length > 0) {
-        console.log(`Billing already processed for ${targetDate}. Found ${existingRecords.length} existing records.`);
-        return;
-      }
 
       // Get active Shopify sessions
       const sessions = await this.bigQueryService.getActiveShopifySessions();
@@ -44,7 +55,17 @@ export class BillingService {
 
       if (sessions.length === 0) {
         console.log('No active sessions found. Skipping billing.');
-        return;
+        return {
+          success: true,
+          targetDate,
+          skipped: true,
+          skipReason: 'No active sessions found',
+          activeSessions: 0,
+          shopsWithPageViews: 0,
+          billingRecordsGenerated: 0,
+          totalPageViews: 0,
+          totalAmount: 0
+        };
       }
 
       // Get page view events for the target date
@@ -56,6 +77,7 @@ export class BillingService {
       console.log(`Generated ${billingRecords.length} billing records`);
       
       let chargeResults: any[] = [];
+      const shopResults: ShopBillingResult[] = [];
 
       // Insert billing records to BigQuery first
       if (billingRecords.length > 0) {
@@ -65,8 +87,39 @@ export class BillingService {
           shopify_billing_status: 'pending' as const,
         }));
         
-        await this.bigQueryService.insertBillingRecords(recordsWithStatus);
-        console.log(`Inserted ${billingRecords.length} billing records to BigQuery`);
+        // Try to insert billing records to BigQuery and track results per shop
+        try {
+          await this.bigQueryService.insertBillingRecords(recordsWithStatus);
+          console.log(`Inserted ${billingRecords.length} billing records to BigQuery`);
+          
+          // Initialize shop results with successful BigQuery saves
+          billingRecords.forEach(record => {
+            shopResults.push({
+              shop: record.shop,
+              pageViews: record.page_views,
+              billingAmount: record.billing_amount,
+              bigQuerySaved: true,
+              shopifyStatus: 'pending'
+            });
+          });
+        } catch (bigQueryError) {
+          console.error('Failed to insert billing records to BigQuery:', bigQueryError);
+          
+          // Initialize shop results with failed BigQuery saves
+          billingRecords.forEach(record => {
+            shopResults.push({
+              shop: record.shop,
+              pageViews: record.page_views,
+              billingAmount: record.billing_amount,
+              bigQuerySaved: false,
+              bigQueryError: bigQueryError instanceof Error ? bigQueryError.message : 'Unknown BigQuery error',
+              shopifyStatus: 'skipped'
+            });
+          });
+          
+          // If BigQuery fails, we shouldn't proceed with Shopify charges
+          throw bigQueryError;
+        }
         
         // Process Shopify charges
         console.log('Processing Shopify charges...');
@@ -76,7 +129,7 @@ export class BillingService {
         
         chargeResults = await this.shopifyBillingService.chargeShops(sessions, chargeMap);
         
-        // Update records with Shopify charge results
+        // Create new records with Shopify charge results for insertion (avoiding UPDATE due to streaming buffer)
         const updatedRecords: BillingRecord[] = billingRecords.map(record => {
           const chargeResult = chargeResults.find(r => r.shop === record.shop);
           if (chargeResult) {
@@ -94,9 +147,20 @@ export class BillingService {
           }
           return record;
         });
+
+        // Update shop results with Shopify charge results
+        shopResults.forEach(shopResult => {
+          const chargeResult = chargeResults.find(r => r.shop === shopResult.shop);
+          if (chargeResult) {
+            shopResult.shopifyStatus = chargeResult.status as 'pending' | 'success' | 'failed' | 'skipped';
+            shopResult.shopifyChargeId = chargeResult.chargeId;
+            shopResult.shopifyError = chargeResult.error;
+          }
+        });
         
-        // Update BigQuery with charge results
-        await this.bigQueryService.updateBillingRecords(updatedRecords);
+        // Insert updated records as new rows instead of UPDATE to avoid streaming buffer constraints
+        await this.bigQueryService.insertBillingRecords(updatedRecords);
+        console.log('Inserted updated billing records with Shopify charge results');
         console.log('Daily billing process completed successfully');
       } else {
         console.log('No billing records to insert');
@@ -111,12 +175,67 @@ export class BillingService {
       console.log(`- Total page views: ${totalPageViews.toLocaleString()}`);
       console.log(`- Total billing amount: $${totalAmount.toFixed(2)}`);
 
+      return {
+        success: true,
+        targetDate,
+        skipped: false,
+        activeSessions: sessions.length,
+        shopsWithPageViews: pageViews.length,
+        billingRecordsGenerated: billingRecords.length,
+        totalPageViews,
+        totalAmount,
+        chargeResults,
+        shopResults
+      };
 
     } catch (error) {
       console.error('Error in daily billing process:', error);
       
+      // Try to provide some context about where the error occurred
+      let errorContext = 'Unknown error location';
+      let shopResults: ShopBillingResult[] = [];
       
-      throw error;
+      if (error instanceof Error) {
+        errorContext = error.message;
+        
+        // If we have sessions and page views data, create failed shop results
+        try {
+          const sessions = await this.bigQueryService.getActiveShopifySessions();
+          const pageViews = await this.bigQueryService.getPageViewsForDate(this.getTargetBillingDate());
+          const billingRecords = this.generateBillingRecords(sessions, pageViews, this.getTargetBillingDate());
+          
+          shopResults = billingRecords.map(record => ({
+            shop: record.shop,
+            pageViews: record.page_views,
+            billingAmount: record.billing_amount,
+            bigQuerySaved: false,
+            bigQueryError: errorContext,
+            shopifyStatus: 'skipped' as const,
+            shopifyError: 'Process failed before Shopify billing'
+          }));
+        } catch (contextError) {
+          console.error('Error creating context for failed billing:', contextError);
+        }
+      }
+      
+      // Return error details instead of throwing
+      return {
+        success: false,
+        targetDate: this.getTargetBillingDate(),
+        skipped: false,
+        skipReason: `Process failed: ${errorContext}`,
+        activeSessions: 0,
+        shopsWithPageViews: 0,
+        billingRecordsGenerated: 0,
+        totalPageViews: 0,
+        totalAmount: 0,
+        shopResults,
+        errorDetails: {
+          message: errorContext,
+          timestamp: new Date().toISOString(),
+          stack: error instanceof Error ? error.stack : undefined
+        }
+      };
     }
   }
 
@@ -160,7 +279,17 @@ export class BillingService {
     return Math.round(millionViews * this.config.ratePerMillion * 100) / 100; // Round to 2 decimal places
   }
 
-  async testBillingForDate(testDate: string): Promise<void> {
+  async testBillingForDate(testDate: string): Promise<{
+    success: boolean;
+    targetDate: string;
+    skipped: boolean;
+    skipReason?: string;
+    activeSessions: number;
+    shopsWithPageViews: number;
+    billingRecordsGenerated: number;
+    totalPageViews: number;
+    totalAmount: number;
+  }> {
     console.log(`Testing billing process for date: ${testDate}`);
     
     const sessions = await this.bigQueryService.getActiveShopifySessions();
@@ -182,6 +311,17 @@ export class BillingService {
     billingRecords.slice(0, 5).forEach(record => {
       console.log(`- ${record.shop}: ${record.page_views.toLocaleString()} views = $${record.billing_amount}`);
     });
+
+    return {
+      success: true,
+      targetDate: testDate,
+      skipped: false,
+      activeSessions: sessions.length,
+      shopsWithPageViews: pageViews.length,
+      billingRecordsGenerated: billingRecords.length,
+      totalPageViews,
+      totalAmount
+    };
   }
 
 }
