@@ -50,10 +50,8 @@ jobs:
     - name: Deploy to Cloud Functions
       run: |
         # Set default values if secrets are not set
-        MEMORY="${{ secrets.FUNCTION_MEMORY }}"
-        TIMEOUT="${{ secrets.FUNCTION_TIMEOUT }}"
-        MEMORY=${MEMORY:-256M}
-        TIMEOUT=${TIMEOUT:-540s}
+        MEMORY="${{ secrets.FUNCTION_MEMORY || '256M' }}"
+        TIMEOUT="${{ secrets.FUNCTION_TIMEOUT || '540s' }}"
         
         gcloud functions deploy $FUNCTION_NAME \
           --gen2 \
