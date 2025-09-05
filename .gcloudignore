@@ -1,0 +1,63 @@
+# This file specifies files that are intentionally untracked by gcloud
+# If you would like to upload your .git directory, .gitignore file or files
+# from your .gitignore file, remove the corresponding line below:
+.git
+.gitignore
+
+# Node.js dependencies:
+node_modules/
+npm-debug.log
+
+# TypeScript source files (only built files needed):
+src/
+tsconfig.json
+.eslintrc.js
+
+# Development files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+prod.env
+
+# Test files
+test/
+tests/
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+jest.config.js
+
+# Documentation
+README.md
+docs/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+
+# Scripts (deployment only)
+scripts/
+
+# GitHub workflows
+.github/
+
+# Other
+.dockerignore
+Dockerfile
