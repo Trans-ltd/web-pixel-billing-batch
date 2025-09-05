@@ -13,10 +13,16 @@ NC='\033[0m' # No Color
 
 echo -e "${GREEN}GitHub環境変数設定スクリプトを開始します${NC}"
 
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PROD_ENV_FILE="$PROJECT_ROOT/prod.env"
+
 # Check if prod.env exists
-if [ ! -f "prod.env" ]; then
+if [ ! -f "$PROD_ENV_FILE" ]; then
     echo -e "${RED}Error: prod.envファイルが見つかりません${NC}"
-    echo "prod.envファイルを作成してください。例:"
+    echo "プロジェクトルートにprod.envファイルを作成してください: $PROD_ENV_FILE"
+    echo "例:"
     echo "GOOGLE_CLOUD_PROJECT=growth-force-project"
     echo "GOOGLE_CLOUD_SA_KEY={\"type\":\"service_account\",...}"
     exit 1
@@ -65,7 +71,7 @@ while IFS='=' read -r key value || [ -n "$key" ]; do
             echo -e "${RED}❌ Failed to set $key${NC}"
         fi
     fi
-done < prod.env
+done < "$PROD_ENV_FILE"
 
 echo -e "${GREEN}GitHub環境変数の設定が完了しました！${NC}"
 
