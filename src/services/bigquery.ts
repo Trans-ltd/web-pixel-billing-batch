@@ -48,8 +48,7 @@ export class BigQueryService {
         COUNT(*) as event_count
       FROM \`${this.projectId}.ad_analytics.events\`
       WHERE name = 'page_viewed'
-        AND TIMESTAMP(created_at) >= TIMESTAMP('${startDate}')
-        AND TIMESTAMP(created_at) < TIMESTAMP('${endDate}')
+        AND DATE(created_at) = DATE('${targetDate}')
         AND shop IS NOT NULL
         AND shop != ''
       GROUP BY shop
