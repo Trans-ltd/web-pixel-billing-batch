@@ -1,7 +1,7 @@
 export interface ShopifySession {
   session_id: string;
   shop_domain: string;
-  access_token: string;
+  accessToken: string;
   created_at: string;
   updated_at: string;
 }

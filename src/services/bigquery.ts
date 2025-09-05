@@ -19,37 +19,36 @@ export class BigQueryService {
   async getActiveShopifySessions(): Promise<ShopifySession[]> {
     const query = `
       SELECT 
-        session_id,
-        shop_domain,
-        access_token,
-        created_at,
-        updated_at
+        shop AS shop_domain,
+        accessToken,
+        createdAt AS created_at,
+        updatedAt AS updated_at
       FROM \`${this.projectId}.session_manager.shopify_sessions\`
-      WHERE access_token IS NOT NULL
-        AND access_token != ''
-        AND shop_domain IS NOT NULL
-        AND shop_domain != ''
+      WHERE accessToken IS NOT NULL
+        AND accessToken != ''
+        AND shop IS NOT NULL
+        AND shop != ''
     `;
 
     const [rows] = await this.bigquery.query(query);
-    return rows as ShopifySession[];
+    // session_idを生成（shopをそのまま使用）
+    return rows.map((row: Record<string, unknown>) => ({
+      ...row,
+      session_id: (row as unknown as ShopifySession).shop_domain
+    })) as ShopifySession[];
   }
 
   async getPageViewsForDate(targetDate: string): Promise<PageViewEvent[]> {
-    const startDate = dayjs(targetDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-    const endDate = dayjs(targetDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
     const query = `
       SELECT 
-        shop_domain,
+        shop AS shop_domain,
         COUNT(*) as event_count
       FROM \`${this.projectId}.ad_analytics.events\`
-      WHERE event_name = 'page_viewed'
-        AND TIMESTAMP(event_timestamp) >= TIMESTAMP('${startDate}')
-        AND TIMESTAMP(event_timestamp) < TIMESTAMP('${endDate}')
-        AND shop_domain IS NOT NULL
-        AND shop_domain != ''
-      GROUP BY shop_domain
+      WHERE name = 'page_viewed'
+        AND DATE(created_at) = DATE('${targetDate}')
+        AND shop IS NOT NULL
+        AND shop != ''
+      GROUP BY shop
     `;
 
     const [rows] = await this.bigquery.query(query);
