@@ -26,7 +26,8 @@ jobs:
     - name: Setup credentials file
       run: |
         mkdir -p $HOME/.config/gcloud
-        cat > $HOME/.config/gcloud/application_default_credentials.json << EOF
+        # Create service account JSON with proper formatting
+        cat > $HOME/.config/gcloud/service-account-key.json << ENDOFKEY
         {
           "type": "service_account",
           "project_id": "${{ secrets.GCP_PROJECT_ID }}",
@@ -40,11 +41,11 @@ jobs:
           "client_x509_cert_url": "${{ secrets.GCP_CLIENT_X509_CERT_URL }}",
           "universe_domain": "googleapis.com"
         }
-        EOF
+        ENDOFKEY
         
     - name: Authenticate to Google Cloud
       run: |
-        gcloud auth activate-service-account --key-file=$HOME/.config/gcloud/application_default_credentials.json
+        gcloud auth activate-service-account --key-file=$HOME/.config/gcloud/service-account-key.json
         gcloud config set project $PROJECT_ID
 
     - name: Set up Cloud SDK
