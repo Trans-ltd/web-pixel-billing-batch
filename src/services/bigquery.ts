@@ -32,16 +32,13 @@ export class BigQueryService {
 
     const [rows] = await this.bigquery.query(query);
     // session_idを生成（shopをそのまま使用）
-    return rows.map((row: any) => ({
+    return rows.map((row: Record<string, unknown>) => ({
       ...row,
-      session_id: row.shop_domain
+      session_id: (row as ShopifySession).shop_domain
     })) as ShopifySession[];
   }
 
   async getPageViewsForDate(targetDate: string): Promise<PageViewEvent[]> {
-    const startDate = dayjs(targetDate).startOf('day').format('YYYY-MM-DD HH:mm:ss');
-    const endDate = dayjs(targetDate).endOf('day').format('YYYY-MM-DD HH:mm:ss');
-
     const query = `
       SELECT 
         shop AS shop_domain,
