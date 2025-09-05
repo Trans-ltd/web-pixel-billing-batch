@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "compile": "tsc",
+    "postcompile": "cp package.prod.json ./dist/package.json && cd dist && npm install --package-lock-only",
     "dev": "functions-framework --target=processBilling --source=dist --signature-type=http",
     "start": "npm run compile && npm run dev",
     "test": "jest --passWithNoTests",

@@ -51,7 +51,7 @@ gcloud functions deploy ${FUNCTION_NAME} \
   --gen2 \
   --runtime=nodejs20 \
   --region=${REGION} \
-  --source=. \
+  --source=dist \
   --entry-point=processBilling \
   --trigger-http \
   --allow-unauthenticated \

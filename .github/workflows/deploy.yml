@@ -53,7 +53,7 @@ jobs:
           --gen2 \
           --runtime=nodejs20 \
           --region=$REGION \
-          --source=. \
+          --source=dist \
           --entry-point=processBilling \
           --trigger-http \
           --allow-unauthenticated \

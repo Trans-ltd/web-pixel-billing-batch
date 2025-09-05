@@ -1,0 +1,16 @@
+{
+  "name": "web-pixel-billing-batch",
+  "version": "1.0.0",
+  "description": "Shopify usage-based billing batch processing system",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.3.0",
+    "@google-cloud/bigquery": "^7.3.0",
+    "@google-cloud/pubsub": "^4.0.7",
+    "dayjs": "^1.11.10"
+  }
+}
