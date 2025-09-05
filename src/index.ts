@@ -1,7 +1,9 @@
 import { http, HttpFunction } from '@google-cloud/functions-framework';
 import { BillingService } from './services/billing';
+import { SlackService } from './services/slack';
 
 const billingService = new BillingService();
+const slackService = new SlackService();
 
 export const processBilling: HttpFunction = async (req, res) => {
   console.log('Billing batch process started');
@@ -14,22 +16,32 @@ export const processBilling: HttpFunction = async (req, res) => {
     // Process daily billing
     await billingService.processDailyBilling();
     
-    res.status(200).json({
+    const result = {
       success: true,
       message: 'Billing process completed successfully',
       timestamp: new Date().toISOString(),
       scheduled: !!isScheduledTrigger
-    });
+    };
+    
+    // Send result to Slack
+    await slackService.sendBatchResult(result);
+    
+    res.status(200).json(result);
     
   } catch (error) {
     console.error('Error processing billing:', error);
     
-    res.status(500).json({
+    const errorResult = {
       success: false,
       message: 'Billing process failed',
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    // Send error result to Slack
+    await slackService.sendBatchResult(errorResult);
+    
+    res.status(500).json(errorResult);
   }
 };
 
@@ -42,22 +54,32 @@ export const testBilling: HttpFunction = async (req, res) => {
     
     await billingService.testBillingForDate(testDate);
     
-    res.status(200).json({
+    const result = {
       success: true,
       message: `Test billing completed for date: ${testDate}`,
       testDate,
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    // Send result to Slack
+    await slackService.sendBatchResult(result);
+    
+    res.status(200).json(result);
     
   } catch (error) {
     console.error('Error in test billing:', error);
     
-    res.status(500).json({
+    const errorResult = {
       success: false,
       message: 'Test billing failed',
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
-    });
+    };
+    
+    // Send error result to Slack
+    await slackService.sendBatchResult(errorResult);
+    
+    res.status(500).json(errorResult);
   }
 };
 
