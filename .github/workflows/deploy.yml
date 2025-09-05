@@ -35,6 +35,26 @@ jobs:
       with:
         project_id: ${{ env.PROJECT_ID }}
 
+    - name: Verify IAM permissions
+      run: |
+        echo "Checking IAM permissions for service account..."
+        SERVICE_ACCOUNT="github-actions-deploy@growth-force-project.iam.gserviceaccount.com"
+        
+        # Check if the service account has necessary roles
+        REQUIRED_ROLES=(
+          "roles/cloudfunctions.admin"
+          "roles/run.admin"
+        )
+        
+        echo "Current IAM policy for $SERVICE_ACCOUNT:"
+        gcloud projects get-iam-policy $PROJECT_ID \
+          --flatten="bindings[].members" \
+          --filter="bindings.members:serviceAccount:$SERVICE_ACCOUNT" \
+          --format="table(bindings.role)" || true
+        
+        echo ""
+        echo "Note: If deployment fails with permission errors, run scripts/setup-iam-permissions.sh locally"
+
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
