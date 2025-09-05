@@ -210,6 +210,10 @@ NODE_ENV=test npm run dev
 curl "https://your-service-url/testBilling?date=YYYY-MM-DD"
 ```
 
+## 制限事項・課題
+
+- **実際のクライアント環境でのテスト未実施**: このシステムはまだ本格的なクライアント環境でテストされていません。本番デプロイ前に十分なテストが必要です。
+
 ## ライセンス
 
 MIT

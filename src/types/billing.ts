@@ -28,3 +28,14 @@ export interface BillingConfig {
   timezone: string;
   billingTime: string;
 }
+
+export interface ShopBillingResult {
+  shop: string;
+  pageViews: number;
+  billingAmount: number;
+  bigQuerySaved: boolean;
+  bigQueryError?: string;
+  shopifyChargeId?: string;
+  shopifyStatus: 'pending' | 'success' | 'failed' | 'skipped';
+  shopifyError?: string;
+}
