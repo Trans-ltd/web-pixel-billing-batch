@@ -27,7 +27,7 @@ jobs:
       uses: google-github-actions/auth@v2
       with:
         project_id: growth-force-project
-        workload_identity_provider: //iam.googleapis.com/projects/32670171847/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+        workload_identity_provider: projects/32670171847/locations/global/workloadIdentityPools/github-pool/providers/github-provider
         service_account: github-actions-deploy@growth-force-project.iam.gserviceaccount.com
 
     - name: Set up Cloud SDK
