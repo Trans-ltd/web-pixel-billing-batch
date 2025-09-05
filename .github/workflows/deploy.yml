@@ -38,20 +38,20 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
 
     - name: Install dependencies
       run: npm ci
 
     - name: Build TypeScript
-      run: npm run build
+      run: npm run compile
 
     - name: Deploy to Cloud Functions
       run: |
         gcloud functions deploy $FUNCTION_NAME \
           --gen2 \
-          --runtime=nodejs18 \
+          --runtime=nodejs20 \
           --region=$REGION \
           --source=. \
           --entry-point=processBilling \

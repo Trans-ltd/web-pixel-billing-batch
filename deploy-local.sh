@@ -42,14 +42,14 @@ fi
 # Build TypeScript
 echo ""
 echo "Building TypeScript..."
-npm run build
+npm run compile
 
 # Deploy to Cloud Functions
 echo ""
 echo "Deploying to Cloud Functions..."
 gcloud functions deploy ${FUNCTION_NAME} \
   --gen2 \
-  --runtime=nodejs18 \
+  --runtime=nodejs20 \
   --region=${REGION} \
   --source=. \
   --entry-point=processBilling \
