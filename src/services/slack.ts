@@ -4,16 +4,22 @@ import { ShopBillingResult } from '../types/billing';
 export class SlackService {
   private client: WebClient;
   private channelId: string;
+  private isDummyToken: boolean;
 
   constructor() {
     const botToken = process.env.SLACK_BOT_TOKEN;
-    const channelId = process.env.SLACK_CHANNEL_IDS;
+    const channelId = process.env.SLACK_CHANNEL_IDS || process.env.SLACK_CHANNEL_ID;
 
     if (!botToken) {
       throw new Error('SLACK_BOT_TOKEN environment variable is required');
     }
     if (!channelId) {
       throw new Error('SLACK_CHANNEL_IDS environment variable is required');
+    }
+
+    this.isDummyToken = botToken === 'dummy-token-for-startup';
+    if (this.isDummyToken) {
+      console.warn('Using dummy Slack token - Slack notifications will be disabled');
     }
 
     this.client = new WebClient(botToken);
@@ -45,6 +51,11 @@ export class SlackService {
       };
     };
   }): Promise<void> {
+    if (this.isDummyToken) {
+      console.log('Slack notification skipped (dummy token):', result.message);
+      return;
+    }
+
     try {
       const { success, message, timestamp, error, scheduled, testDate, billingDetails } = result;
       

@@ -4,6 +4,9 @@
   "description": "Shopify usage-based billing batch processing system",
   "main": "index.js",
   "type": "commonjs",
+  "scripts": {
+    "start": "functions-framework --target=processBilling --signature-type=http --port=8080"
+  },
   "engines": {
     "node": ">=20"
   },
