@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import { BigQueryService } from './bigquery';
+import { ShopifyBillingService } from './shopifyBilling';
 import { BillingRecord, BillingConfig, ShopifySession, PageViewEvent } from '../types/billing';
 
 dayjs.extend(utc);
@@ -9,10 +10,12 @@ dayjs.extend(timezone);
 
 export class BillingService {
   private bigQueryService: BigQueryService;
+  private shopifyBillingService: ShopifyBillingService;
   private config: BillingConfig;
 
   constructor() {
     this.bigQueryService = new BigQueryService();
+    this.shopifyBillingService = new ShopifyBillingService();
     this.config = {
       ratePerMillion: 10.0, // $10 per 1 million page views
       timezone: 'Asia/Tokyo',
@@ -51,10 +54,49 @@ export class BillingService {
       // Generate billing records
       const billingRecords = this.generateBillingRecords(sessions, pageViews, targetDate);
       console.log(`Generated ${billingRecords.length} billing records`);
+      
+      let chargeResults: any[] = [];
 
-      // Insert billing records
+      // Insert billing records to BigQuery first
       if (billingRecords.length > 0) {
-        await this.bigQueryService.insertBillingRecords(billingRecords);
+        // Mark all records as pending
+        const recordsWithStatus = billingRecords.map(record => ({
+          ...record,
+          shopify_billing_status: 'pending' as const,
+        }));
+        
+        await this.bigQueryService.insertBillingRecords(recordsWithStatus);
+        console.log(`Inserted ${billingRecords.length} billing records to BigQuery`);
+        
+        // Process Shopify charges
+        console.log('Processing Shopify charges...');
+        const chargeMap = new Map(
+          billingRecords.map(record => [record.shop, record.billing_amount])
+        );
+        
+        chargeResults = await this.shopifyBillingService.chargeShops(sessions, chargeMap);
+        
+        // Update records with Shopify charge results
+        const updatedRecords: BillingRecord[] = billingRecords.map(record => {
+          const chargeResult = chargeResults.find(r => r.shop === record.shop);
+          if (chargeResult) {
+            // Map 'skipped' status to 'pending' for compatibility with BillingRecord type
+            const billingStatus: 'pending' | 'success' | 'failed' = 
+              chargeResult.status === 'skipped' ? 'pending' : chargeResult.status;
+            
+            return {
+              ...record,
+              shopify_charge_id: chargeResult.chargeId,
+              shopify_billing_status: billingStatus,
+              shopify_error_message: chargeResult.error,
+              shopify_processed_at: chargeResult.status === 'success' ? new Date().toISOString() : undefined,
+            };
+          }
+          return record;
+        });
+        
+        // Update BigQuery with charge results
+        await this.bigQueryService.updateBillingRecords(updatedRecords);
         console.log('Daily billing process completed successfully');
       } else {
         console.log('No billing records to insert');
@@ -69,8 +111,11 @@ export class BillingService {
       console.log(`- Total page views: ${totalPageViews.toLocaleString()}`);
       console.log(`- Total billing amount: $${totalAmount.toFixed(2)}`);
 
+
     } catch (error) {
       console.error('Error in daily billing process:', error);
+      
+      
       throw error;
     }
   }
@@ -138,4 +183,5 @@ export class BillingService {
       console.log(`- ${record.shop}: ${record.page_views.toLocaleString()} views = $${record.billing_amount}`);
     });
   }
+
 }

@@ -17,6 +17,10 @@ export interface BillingRecord {
   page_views: number;
   billing_amount: number;
   rate_per_million: number;
+  shopify_charge_id?: string;
+  shopify_billing_status?: 'pending' | 'success' | 'failed';
+  shopify_error_message?: string;
+  shopify_processed_at?: string;
 }
 
 export interface BillingConfig {

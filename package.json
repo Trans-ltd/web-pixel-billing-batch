@@ -18,9 +18,15 @@
     "@google-cloud/bigquery": "^7.3.0",
     "@google-cloud/functions-framework": "^3.3.0",
     "@google-cloud/pubsub": "^4.0.7",
-    "dayjs": "^1.11.10"
+    "@slack/web-api": "^7.10.0",
+    "axios": "^1.11.0",
+    "dayjs": "^1.11.10",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
+    "p-limit": "^3.1.0"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.8.0",
     "@typescript-eslint/eslint-plugin": "^6.7.5",
     "@typescript-eslint/parser": "^6.7.5",
@@ -28,6 +34,7 @@
     "husky": "^9.1.7",
     "jest": "^29.7.0",
     "lint-staged": "^15.5.2",
+    "ts-jest": "^29.4.1",
     "ts-node": "^10.9.1",
     "typescript": "^5.2.2"
   },
