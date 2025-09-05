@@ -2,6 +2,10 @@ import { http, HttpFunction } from '@google-cloud/functions-framework';
 import { BillingService } from './services/billing';
 import { SlackService } from './services/slack';
 
+// Ensure environment variables are set with defaults for Cloud Functions
+process.env.SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN || 'dummy-token-for-startup';
+process.env.SLACK_CHANNEL_ID = process.env.SLACK_CHANNEL_ID || 'C07NR0MM9QK';
+
 const billingService = new BillingService();
 const slackService = new SlackService();
 
@@ -106,20 +110,6 @@ export const testBilling: HttpFunction = async (req, res) => {
   }
 };
 
-// Default handler for the main billing process
+// Register HTTP functions
 http('processBilling', processBilling);
 http('testBilling', testBilling);
-
-// For local development and testing
-if (require.main === module) {
-  console.log('Starting local development server...');
-  
-  // You can test the billing service locally here
-  const testMode = process.env.NODE_ENV === 'test';
-  
-  if (testMode) {
-    billingService.testBillingForDate('2024-01-01')
-      .then(() => console.log('Local test completed'))
-      .catch(error => console.error('Local test failed:', error));
-  }
-}
