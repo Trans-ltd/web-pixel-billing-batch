@@ -83,7 +83,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
             --time-zone="Asia/Tokyo" \
             --uri="${FUNCTION_URL}" \
             --http-method=POST \
-            --headers="Content-Type=application/json" \
+            --update-headers="Content-Type=application/json" \
             --message-body="{}"
     else
         echo "Creating new scheduler job..."
