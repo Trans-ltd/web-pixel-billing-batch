@@ -6,16 +6,26 @@ Shopifyの従量課金システム - Cloud Run、Pub/Sub、BigQueryを使用し�
 
 このシステムは、Shopifyクライアントのページビュー数に基づいて従量課金を自動で処理するバッチシステムです。毎日日本時間25:00（翌日01:00）に実行され、前日のページビューデータを集計して課金レコードを生成し、Shopify GraphQL APIを通じて実際の課金を行います。
 
-## 機能要件
+## 主要機能
 
-- **スケジュール**: 日本時間25:00（翌日01:00）に毎日実行
-- **データソース**: 
-  - `growth-force-project.session_manager.shopify_sessions` - Shopifyセッション情報（アクセストークン含む）
-  - `growth-force-project.ad_analytics.events` - ページビューイベント
-- **課金レート**: 100万ページビューあたり$10
-- **出力**: 
-  - `growth-force-project.billing.usage_records` - 課金レコード（Shopify課金ステータス含む）
-  - Shopify GraphQL API経由での実際の課金処理
+1. **自動従量課金処理**: ページビュー数に基づく日次課金計算・請求
+2. **外部システム連携**: BigQuery、Shopify API、Slack通知の統合
+3. **運用監視機能**: バッチ処理結果の詳細レポート・エラーハンドリング
+
+### 機能詳細
+
+| 主要機能 | 機能項目 | 詳細仕様 | 実行タイミング |
+|----------|----------|----------|---------------|
+| **自動従量課金処理** | セッション取得 | BigQueryからアクティブなShopifyセッションを取得 | 毎日01:00 JST |
+| | ページビュー集計 | 前日のページビューイベントを店舗別に集計 | 毎日01:00 JST |
+| | 課金計算 | 100万PVあたり$10の従量課金額を算出 | 毎日01:00 JST |
+| | 請求処理 | Shopify GraphQL APIによる実際の課金処理 | リアルタイム |
+| **外部システム連携** | BigQuery連携 | 課金レコードの保存・セッション/イベント取得 | リアルタイム |
+| | Shopify API連携 | 使用量ベース課金の作成・ステータス管理 | 並列5件処理 |
+| | Slack通知連携 | バッチ処理結果の詳細レポート送信 | 処理完了後 |
+| **運用監視機能** | エラーハンドリング | 最大3回のリトライとエラー詳細記録 | エラー発生時 |
+| | テスト実行 | 指定日付での課金処理テスト機能 | 手動実行時 |
+| | ステータス追跡 | Shopify課金結果の監視・更新 | リアルタイム |
 
 ## アーキテクチャ
 
@@ -23,19 +33,74 @@ Shopifyの従量課金システム - Cloud Run、Pub/Sub、BigQueryを使用し�
 
 ```mermaid
 graph TD
-    %% External Components
+    CloudScheduler[Cloud Scheduler<br/>定期実行トリガー]
+    MainFunction[processBilling<br/>メイン処理関数]
+    TestFunction[testBilling<br/>テスト処理関数]
+    
+    subgraph Billing [自動従量課金処理]
+        SessionGet[セッション取得<br/>BigQueryから取得]
+        PageViewCalc[ページビュー集計<br/>前日分集計]
+        BillingCalc[課金計算<br/>100万PVあたり10ドル]
+        ChargeProcess[請求処理<br/>Shopify API]
+    end
+    
+    subgraph External [外部システム連携]
+        BigQueryAPI[(BigQuery<br/>データ取得・保存)]
+        ShopifyAPI[Shopify API<br/>課金処理]
+        SlackAPI[Slack API<br/>結果通知]
+    end
+    
+    subgraph Monitor [運用監視機能]
+        ErrorHandle[エラーハンドリング<br/>リトライ・記録]
+        StatusTrack[ステータス追跡<br/>結果監視]
+        TestExec[テスト実行<br/>任意日付処理]
+    end
+    
+    CloudScheduler --> MainFunction
+    MainFunction --> SessionGet
+    SessionGet --> PageViewCalc
+    PageViewCalc --> BillingCalc  
+    BillingCalc --> ChargeProcess
+    
+    SessionGet -.-> BigQueryAPI
+    PageViewCalc -.-> BigQueryAPI
+    BillingCalc -.-> BigQueryAPI
+    ChargeProcess -.-> ShopifyAPI
+    ChargeProcess -.-> SlackAPI
+    
+    SessionGet -.-> ErrorHandle
+    PageViewCalc -.-> ErrorHandle
+    BillingCalc -.-> ErrorHandle
+    ChargeProcess -.-> StatusTrack
+    TestFunction -.-> TestExec
+    
+    classDef dbColor fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
+    classDef functionColor fill:#fbbc04,stroke:#333,stroke-width:2px,color:#000
+    classDef serviceColor fill:#4285f4,stroke:#333,stroke-width:2px,color:#fff
+    classDef triggerColor fill:#34a853,stroke:#333,stroke-width:2px,color:#fff
+    
+    class BigQueryAPI dbColor
+    class MainFunction,TestFunction functionColor
+    class SessionGet,PageViewCalc,BillingCalc,ChargeProcess,ShopifyAPI,SlackAPI,ErrorHandle,StatusTrack,TestExec serviceColor
+    class CloudScheduler triggerColor
+    class Billing,External,Monitor subgraphBg
+```
+
+### 詳細システム構成図
+
+```mermaid
+graph TD
     CloudScheduler[Cloud Scheduler<br/>定期実行トリガー]
     SlackAPI[Slack API<br/>通知送信]
     ShopifyAPI[Shopify GraphQL API<br/>請求処理]
     
-    %% Google Cloud Platform
-    subgraph GCP ["Google Cloud Platform"]
-        subgraph CloudFunctions ["Cloud Functions"]
+    subgraph GCP [Google Cloud Platform]
+        subgraph CloudFunctions [Cloud Functions]
             MainFunction[processBilling<br/>メイン処理関数]
             TestFunction[testBilling<br/>テスト処理関数]
         end
         
-        subgraph BigQuery ["BigQuery"]
+        subgraph BigQuery [BigQuery]
             SessionDataset[(session_manager<br/>データセット)]
             AnalyticsDataset[(ad_analytics<br/>データセット)]
             BillingDataset[(billing<br/>データセット)]
@@ -50,9 +115,8 @@ graph TD
         end
     end
     
-    %% Application Layer
-    subgraph App ["アプリケーション層"]
-        subgraph Services ["サービス"]
+    subgraph App [アプリケーション層]
+        subgraph Services [サービス]
             BillingService[BillingService<br/>請求処理サービス]
             BigQueryService[BigQueryService<br/>BigQuery操作サービス]
             ShopifyBillingService[ShopifyBillingService<br/>Shopify請求サービス]
@@ -60,31 +124,32 @@ graph TD
         end
     end
     
-    %% Data Flow
-    CloudScheduler -->|HTTP Request| MainFunction
+    CloudScheduler --> MainFunction
     MainFunction --> BillingService
     
     BillingService --> BigQueryService
     BillingService --> ShopifyBillingService
     BillingService --> SlackService
     
-    BigQueryService -->|データ取得| SessionsTable
-    BigQueryService -->|データ取得| EventsTable
-    BigQueryService -->|データ挿入/更新| UsageTable
+    BigQueryService --> SessionsTable
+    BigQueryService --> EventsTable
+    BigQueryService --> UsageTable
     
-    ShopifyBillingService -->|GraphQL API| ShopifyAPI
-    SlackService -->|通知送信| SlackAPI
+    ShopifyBillingService --> ShopifyAPI
+    SlackService --> SlackAPI
     
-    %% Styling
-    classDef gcpService fill:#4285f4,stroke:#333,stroke-width:2px,color:#fff
-    classDef appService fill:#34a853,stroke:#333,stroke-width:2px,color:#fff
-    classDef external fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
-    classDef data fill:#fbbc04,stroke:#333,stroke-width:2px,color:#000
+    classDef dbColor fill:#ea4335,stroke:#333,stroke-width:2px,color:#fff
+    classDef functionColor fill:#fbbc04,stroke:#333,stroke-width:2px,color:#000
+    classDef serviceColor fill:#4285f4,stroke:#333,stroke-width:2px,color:#fff
+    classDef triggerColor fill:#34a853,stroke:#333,stroke-width:2px,color:#fff
+    classDef datasetColor fill:#ff9800,stroke:#333,stroke-width:2px,color:#fff
     
-    class CloudScheduler,SlackAPI,ShopifyAPI external
-    class CloudFunctions,BigQuery gcpService
-    class BillingService,BigQueryService,ShopifyBillingService,SlackService appService
-    class SessionsTable,EventsTable,UsageTable data
+    class CloudScheduler triggerColor
+    class MainFunction,TestFunction functionColor
+    class BillingService,BigQueryService,ShopifyBillingService,SlackService,ShopifyAPI,SlackAPI serviceColor
+    class SessionsTable,EventsTable,UsageTable dbColor
+    class SessionDataset,AnalyticsDataset,BillingDataset datasetColor
+    class Monitor,Services,CloudFunctions subgraphBg
 ```
 
 ### システム構成要素
