@@ -1,3 +1,8 @@
+// Mock p-limit before importing the service
+jest.mock('p-limit', () => {
+  return jest.fn(() => (fn: () => Promise<unknown>) => fn());
+});
+
 import { ShopifyBillingService } from '../services/shopifyBilling';
 import { ShopifySession } from '../types/billing';
 
