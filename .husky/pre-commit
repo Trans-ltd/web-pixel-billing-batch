@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for changed files only
+echo "📝 Running lint-staged..."
+npx lint-staged
+if [ $? -ne 0 ]; then
+    echo "❌ Linting failed! Please fix errors before committing."
+    exit 1
+fi
+
+# Run TypeScript compile check
+echo "🔨 Checking TypeScript compilation..."
+npx tsc --noEmit
+if [ $? -ne 0 ]; then
+    echo "❌ TypeScript compilation failed! Please fix type errors before committing."
+    exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"

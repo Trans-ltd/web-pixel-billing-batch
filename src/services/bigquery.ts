@@ -34,7 +34,7 @@ export class BigQueryService {
     // session_idを生成（shopをそのまま使用）
     return rows.map((row: Record<string, unknown>) => ({
       ...row,
-      session_id: (row as ShopifySession).shop_domain
+      session_id: (row as unknown as ShopifySession).shop_domain
     })) as ShopifySession[];
   }
 
