@@ -44,15 +44,15 @@ export class BigQueryService {
 
     const query = `
       SELECT 
-        shop_domain,
+        shop AS shop_domain,
         COUNT(*) as event_count
       FROM \`${this.projectId}.ad_analytics.events\`
-      WHERE event_name = 'page_viewed'
-        AND TIMESTAMP(event_timestamp) >= TIMESTAMP('${startDate}')
-        AND TIMESTAMP(event_timestamp) < TIMESTAMP('${endDate}')
-        AND shop_domain IS NOT NULL
-        AND shop_domain != ''
-      GROUP BY shop_domain
+      WHERE name = 'page_viewed'
+        AND TIMESTAMP(created_at) >= TIMESTAMP('${startDate}')
+        AND TIMESTAMP(created_at) < TIMESTAMP('${endDate}')
+        AND shop IS NOT NULL
+        AND shop != ''
+      GROUP BY shop
     `;
 
     const [rows] = await this.bigquery.query(query);
