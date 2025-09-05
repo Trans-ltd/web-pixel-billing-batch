@@ -82,6 +82,10 @@ export class BigQueryService {
           { name: 'page_views', type: 'INTEGER', mode: 'REQUIRED' },
           { name: 'billing_amount', type: 'FLOAT', mode: 'REQUIRED' },
           { name: 'rate_per_million', type: 'FLOAT', mode: 'REQUIRED' },
+          { name: 'shopify_charge_id', type: 'STRING', mode: 'NULLABLE' },
+          { name: 'shopify_billing_status', type: 'STRING', mode: 'NULLABLE' },
+          { name: 'shopify_error_message', type: 'STRING', mode: 'NULLABLE' },
+          { name: 'shopify_processed_at', type: 'TIMESTAMP', mode: 'NULLABLE' },
           { name: 'created_at', type: 'TIMESTAMP', mode: 'REQUIRED' },
         ],
       });
@@ -114,6 +118,30 @@ export class BigQueryService {
     } catch (error) {
       console.log('Billing records table does not exist yet');
       return [];
+    }
+  }
+
+  async updateBillingRecords(records: BillingRecord[]): Promise<void> {
+    if (records.length === 0) {
+      return;
+    }
+
+    const query = records.map(record => `
+      UPDATE \`${this.projectId}.billing.usage_records\`
+      SET 
+        shopify_charge_id = '${record.shopify_charge_id || ''}',
+        shopify_billing_status = '${record.shopify_billing_status || 'pending'}',
+        shopify_error_message = ${record.shopify_error_message ? `'${record.shopify_error_message}'` : 'NULL'},
+        shopify_processed_at = ${record.shopify_processed_at ? `TIMESTAMP('${record.shopify_processed_at}')` : 'NULL'}
+      WHERE shop = '${record.shop}' AND billing_date = DATE('${record.billing_date}')
+    `).join(';\n');
+
+    try {
+      await this.bigquery.query(query);
+      console.log(`Updated ${records.length} billing records with Shopify charge status`);
+    } catch (error) {
+      console.error('Error updating billing records:', error);
+      throw error;
     }
   }
 }
