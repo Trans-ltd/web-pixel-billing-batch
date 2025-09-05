@@ -41,7 +41,7 @@ export class BigQueryService {
   async getPageViewsForDate(targetDate: string): Promise<PageViewEvent[]> {
     const query = `
       SELECT 
-        shop,
+        REGEXP_REPLACE(shop, r'\\.myshopify\\.com$', '') AS shop,
         COUNT(*) as event_count
       FROM \`${this.projectId}.ad_analytics.events\`
       WHERE name = 'page_viewed'
