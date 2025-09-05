@@ -88,17 +88,17 @@ export class BillingService {
     billingDate: string
   ): BillingRecord[] {
     const pageViewsMap = new Map(
-      pageViews.map(pv => [pv.shop_domain, pv.event_count])
+      pageViews.map(pv => [pv.shop, pv.event_count])
     );
 
     const billingRecords: BillingRecord[] = [];
 
     for (const session of sessions) {
-      const viewCount = pageViewsMap.get(session.shop_domain) || 0;
+      const viewCount = pageViewsMap.get(session.shop) || 0;
       const billingAmount = this.calculateBillingAmount(viewCount);
 
       billingRecords.push({
-        shop_domain: session.shop_domain,
+        shop: session.shop,
         billing_date: billingDate,
         page_views: viewCount,
         billing_amount: billingAmount,
@@ -135,7 +135,7 @@ export class BillingService {
     
     console.log('\nSample billing records:');
     billingRecords.slice(0, 5).forEach(record => {
-      console.log(`- ${record.shop_domain}: ${record.page_views.toLocaleString()} views = $${record.billing_amount}`);
+      console.log(`- ${record.shop}: ${record.page_views.toLocaleString()} views = $${record.billing_amount}`);
     });
   }
 }
