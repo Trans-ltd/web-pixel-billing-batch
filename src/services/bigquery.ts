@@ -73,6 +73,42 @@ export class BigQueryService {
 
     try {
       await table.get();
+      
+      // Check if we need to add new columns
+      const [metadata] = await table.getMetadata();
+      const existingFields = metadata.schema.fields.map((field: any) => field.name);
+      
+      const requiredFields = [
+        'shopify_charge_id',
+        'shopify_billing_status', 
+        'shopify_error_message',
+        'shopify_processed_at'
+      ];
+      
+      const missingFields = requiredFields.filter(field => !existingFields.includes(field));
+      
+      if (missingFields.length > 0) {
+        console.log(`Adding missing fields to usage_records table: ${missingFields.join(', ')}`);
+        
+        const newSchema = [...metadata.schema.fields];
+        
+        if (missingFields.includes('shopify_charge_id')) {
+          newSchema.push({ name: 'shopify_charge_id', type: 'STRING', mode: 'NULLABLE' });
+        }
+        if (missingFields.includes('shopify_billing_status')) {
+          newSchema.push({ name: 'shopify_billing_status', type: 'STRING', mode: 'NULLABLE' });
+        }
+        if (missingFields.includes('shopify_error_message')) {
+          newSchema.push({ name: 'shopify_error_message', type: 'STRING', mode: 'NULLABLE' });
+        }
+        if (missingFields.includes('shopify_processed_at')) {
+          newSchema.push({ name: 'shopify_processed_at', type: 'TIMESTAMP', mode: 'NULLABLE' });
+        }
+        
+        await table.setMetadata({ schema: { fields: newSchema } });
+        console.log('Successfully added new fields to usage_records table');
+      }
+      
     } catch (error) {
       console.log('Creating usage_records table...');
       await table.create({
@@ -96,8 +132,16 @@ export class BigQueryService {
       created_at: new Date().toISOString(),
     }));
 
-    await table.insert(rowsToInsert);
-    console.log(`Inserted ${records.length} billing records`);
+    try {
+      await table.insert(rowsToInsert);
+      console.log(`Inserted ${records.length} billing records`);
+    } catch (error: any) {
+      console.error('BigQuery insert error:', error);
+      if (error.errors && error.errors.length > 0) {
+        console.error('Detailed errors:', JSON.stringify(error.errors[0], null, 2));
+      }
+      throw error;
+    }
   }
 
   async getBillingRecordsForDate(targetDate: string): Promise<BillingRecord[]> {
