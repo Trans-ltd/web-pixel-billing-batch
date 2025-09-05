@@ -11,6 +11,11 @@
     "@google-cloud/functions-framework": "^3.3.0",
     "@google-cloud/bigquery": "^7.3.0",
     "@google-cloud/pubsub": "^4.0.7",
-    "dayjs": "^1.11.10"
+    "@slack/web-api": "^7.10.0",
+    "axios": "^1.11.0",
+    "dayjs": "^1.11.10",
+    "graphql": "^16.11.0",
+    "graphql-request": "^7.2.0",
+    "p-limit": "^3.1.0"
   }
 }

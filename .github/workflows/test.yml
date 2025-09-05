@@ -49,6 +49,36 @@ jobs:
         fi
         echo "Build successful: dist/index.js created"
 
+    - name: Validate package.prod.json dependencies
+      run: |
+        echo "Validating package.prod.json dependencies..."
+        # Extract runtime dependencies from package.json (excluding devDependencies)
+        node -e "
+          const pkg = require('./package.json');
+          const prodPkg = require('./package.prod.json');
+          
+          const runtimeDeps = pkg.dependencies || {};
+          const prodDeps = prodPkg.dependencies || {};
+          
+          console.log('Runtime dependencies in package.json:', Object.keys(runtimeDeps).length);
+          console.log('Production dependencies in package.prod.json:', Object.keys(prodDeps).length);
+          
+          const missing = [];
+          for (const dep of Object.keys(runtimeDeps)) {
+            if (!prodDeps[dep]) {
+              missing.push(dep);
+            }
+          }
+          
+          if (missing.length > 0) {
+            console.error('Missing dependencies in package.prod.json:');
+            missing.forEach(dep => console.error('  -', dep));
+            process.exit(1);
+          }
+          
+          console.log('✅ All runtime dependencies are present in package.prod.json');
+        "
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:

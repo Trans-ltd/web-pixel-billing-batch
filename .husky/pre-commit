@@ -18,4 +18,33 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+# Validate package.prod.json dependencies
+echo "📦 Validating package.prod.json dependencies..."
+node -e "
+  const pkg = require('./package.json');
+  const prodPkg = require('./package.prod.json');
+  
+  const runtimeDeps = pkg.dependencies || {};
+  const prodDeps = prodPkg.dependencies || {};
+  
+  const missing = [];
+  for (const dep of Object.keys(runtimeDeps)) {
+    if (!prodDeps[dep]) {
+      missing.push(dep);
+    }
+  }
+  
+  if (missing.length > 0) {
+    console.error('❌ Missing dependencies in package.prod.json:');
+    missing.forEach(dep => console.error('  -', dep));
+    console.error('Please add missing dependencies to package.prod.json');
+    process.exit(1);
+  }
+  
+  console.log('✅ All runtime dependencies are present in package.prod.json');
+"
+if [ $? -ne 0 ]; then
+    exit 1
+fi
+
 echo "✅ All pre-commit checks passed!"
