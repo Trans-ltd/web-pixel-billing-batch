@@ -7,7 +7,6 @@
     "build": "tsc",
     "dev": "functions-framework --target=processBilling --source=dist --signature-type=http",
     "start": "npm run build && npm run dev",
-    "gcp-build": "tsc",
     "test": "jest --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
