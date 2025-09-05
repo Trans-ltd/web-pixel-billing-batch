@@ -19,20 +19,23 @@ export class BigQueryService {
   async getActiveShopifySessions(): Promise<ShopifySession[]> {
     const query = `
       SELECT 
-        session_id,
-        shop_domain,
+        shop AS shop_domain,
         accessToken,
-        created_at,
-        updated_at
+        createdAt AS created_at,
+        updatedAt AS updated_at
       FROM \`${this.projectId}.session_manager.shopify_sessions\`
       WHERE accessToken IS NOT NULL
         AND accessToken != ''
-        AND shop_domain IS NOT NULL
-        AND shop_domain != ''
+        AND shop IS NOT NULL
+        AND shop != ''
     `;
 
     const [rows] = await this.bigquery.query(query);
-    return rows as ShopifySession[];
+    // session_idを生成（shopをそのまま使用）
+    return rows.map((row: any) => ({
+      ...row,
+      session_id: row.shop_domain
+    })) as ShopifySession[];
   }
 
   async getPageViewsForDate(targetDate: string): Promise<PageViewEvent[]> {
