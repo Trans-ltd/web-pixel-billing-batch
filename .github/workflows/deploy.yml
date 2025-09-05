@@ -57,8 +57,8 @@ jobs:
           --entry-point=processBilling \
           --trigger-http \
           --allow-unauthenticated \
-          --memory=${{ secrets.FUNCTION_MEMORY }} \
-          --timeout=${{ secrets.FUNCTION_TIMEOUT }} \
+          --memory=${{ secrets.FUNCTION_MEMORY || '256M' }} \
+          --timeout=${{ secrets.FUNCTION_TIMEOUT || '540s' }} \
           --max-instances=1 \
           --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ secrets.GOOGLE_CLOUD_PROJECT }},NODE_ENV=${{ secrets.NODE_ENV }}"
 
