@@ -116,7 +116,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 echo "Service account impersonation configured"
 
 # Generate values for GitHub Secrets
-WIF_PROVIDER="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_NAME}/providers/${PROVIDER_NAME}"
+WIF_PROVIDER="//iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_NAME}/providers/${PROVIDER_NAME}"
 WIF_SERVICE_ACCOUNT="${SERVICE_ACCOUNT_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 
 # Save to prod.env
