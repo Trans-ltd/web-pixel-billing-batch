@@ -49,10 +49,6 @@ jobs:
 
     - name: Deploy to Cloud Functions
       run: |
-        # Set default values if secrets are not set
-        MEMORY="${{ secrets.FUNCTION_MEMORY || '256M' }}"
-        TIMEOUT="${{ secrets.FUNCTION_TIMEOUT || '540s' }}"
-        
         gcloud functions deploy $FUNCTION_NAME \
           --gen2 \
           --runtime=nodejs18 \
@@ -61,10 +57,10 @@ jobs:
           --entry-point=processBilling \
           --trigger-http \
           --allow-unauthenticated \
-          --memory=$MEMORY \
-          --timeout=$TIMEOUT \
+          --memory=256M \
+          --timeout=540s \
           --max-instances=1 \
-          --set-env-vars="GOOGLE_CLOUD_PROJECT=${{ secrets.GOOGLE_CLOUD_PROJECT }},NODE_ENV=${{ secrets.NODE_ENV }}"
+          --set-env-vars="GOOGLE_CLOUD_PROJECT=$PROJECT_ID,NODE_ENV=production"
 
     - name: Create or update Cloud Scheduler job
       run: |
