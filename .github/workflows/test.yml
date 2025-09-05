@@ -35,7 +35,7 @@ jobs:
       continue-on-error: true  # テストは将来実装のため現在は失敗を許容
 
     - name: Build project
-      run: npm run compile
+      run: npm run build
 
     - name: Verify build output
       run: |

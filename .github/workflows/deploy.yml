@@ -45,7 +45,7 @@ jobs:
       run: npm ci
 
     - name: Build TypeScript
-      run: npm run compile
+      run: npm run build
 
     - name: Deploy to Cloud Functions
       run: |

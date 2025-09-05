@@ -42,7 +42,7 @@ fi
 # Build TypeScript
 echo ""
 echo "Building TypeScript..."
-npm run compile
+npm run build
 
 # Deploy to Cloud Functions
 echo ""
