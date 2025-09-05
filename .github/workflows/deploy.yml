@@ -26,22 +26,37 @@ jobs:
     - name: Setup credentials file
       run: |
         mkdir -p $HOME/.config/gcloud
-        # Create service account JSON with proper formatting
-        cat > $HOME/.config/gcloud/service-account-key.json << ENDOFKEY
-        {
-          "type": "service_account",
-          "project_id": "${{ secrets.GCP_PROJECT_ID }}",
-          "private_key_id": "${{ secrets.GCP_PRIVATE_KEY_ID }}",
-          "private_key": "${{ secrets.GCP_PRIVATE_KEY }}",
-          "client_email": "${{ secrets.GCP_CLIENT_EMAIL }}",
-          "client_id": "${{ secrets.GCP_CLIENT_ID }}",
-          "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-          "token_uri": "https://oauth2.googleapis.com/token",
-          "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-          "client_x509_cert_url": "${{ secrets.GCP_CLIENT_X509_CERT_URL }}",
-          "universe_domain": "googleapis.com"
-        }
-        ENDOFKEY
+        
+        # Create service account JSON using jq for proper escaping
+        jq -n \
+          --arg type "service_account" \
+          --arg project_id "${{ secrets.GCP_PROJECT_ID }}" \
+          --arg private_key_id "${{ secrets.GCP_PRIVATE_KEY_ID }}" \
+          --arg private_key "${{ secrets.GCP_PRIVATE_KEY }}" \
+          --arg client_email "${{ secrets.GCP_CLIENT_EMAIL }}" \
+          --arg client_id "${{ secrets.GCP_CLIENT_ID }}" \
+          --arg auth_uri "https://accounts.google.com/o/oauth2/auth" \
+          --arg token_uri "https://oauth2.googleapis.com/token" \
+          --arg auth_provider_x509_cert_url "https://www.googleapis.com/oauth2/v1/certs" \
+          --arg client_x509_cert_url "${{ secrets.GCP_CLIENT_X509_CERT_URL }}" \
+          --arg universe_domain "googleapis.com" \
+          '{
+            type: $type,
+            project_id: $project_id,
+            private_key_id: $private_key_id,
+            private_key: $private_key,
+            client_email: $client_email,
+            client_id: $client_id,
+            auth_uri: $auth_uri,
+            token_uri: $token_uri,
+            auth_provider_x509_cert_url: $auth_provider_x509_cert_url,
+            client_x509_cert_url: $client_x509_cert_url,
+            universe_domain: $universe_domain
+          }' > $HOME/.config/gcloud/service-account-key.json
+        
+        # Validate JSON
+        echo "Validating JSON file..."
+        cat $HOME/.config/gcloud/service-account-key.json | python3 -m json.tool > /dev/null && echo "✓ JSON is valid" || echo "✗ JSON is invalid"
         
     - name: Authenticate to Google Cloud
       run: |
