@@ -21,12 +21,12 @@ export class BigQueryService {
       SELECT 
         session_id,
         shop_domain,
-        access_token,
+        accessToken,
         created_at,
         updated_at
       FROM \`${this.projectId}.session_manager.shopify_sessions\`
-      WHERE access_token IS NOT NULL
-        AND access_token != ''
+      WHERE accessToken IS NOT NULL
+        AND accessToken != ''
         AND shop_domain IS NOT NULL
         AND shop_domain != ''
     `;
