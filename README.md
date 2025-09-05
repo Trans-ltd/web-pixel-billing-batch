@@ -126,7 +126,7 @@ gcloud logs read "resource.type=cloud_scheduler_job" --limit=10
 ```sql
 -- 課金レコードを確認
 SELECT 
-  shop_domain,
+  shop,
   billing_date,
   page_views,
   billing_amount,

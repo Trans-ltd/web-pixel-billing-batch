@@ -19,7 +19,7 @@ export class BigQueryService {
   async getActiveShopifySessions(): Promise<ShopifySession[]> {
     const query = `
       SELECT 
-        shop AS shop_domain,
+        shop,
         accessToken,
         createdAt AS created_at,
         updatedAt AS updated_at
@@ -34,14 +34,14 @@ export class BigQueryService {
     // session_idを生成（shopをそのまま使用）
     return rows.map((row: Record<string, unknown>) => ({
       ...row,
-      session_id: (row as unknown as ShopifySession).shop_domain
+      session_id: (row as unknown as ShopifySession).shop
     })) as ShopifySession[];
   }
 
   async getPageViewsForDate(targetDate: string): Promise<PageViewEvent[]> {
     const query = `
       SELECT 
-        shop AS shop_domain,
+        shop,
         COUNT(*) as event_count
       FROM \`${this.projectId}.ad_analytics.events\`
       WHERE name = 'page_viewed'
@@ -77,7 +77,7 @@ export class BigQueryService {
       console.log('Creating usage_records table...');
       await table.create({
         schema: [
-          { name: 'shop_domain', type: 'STRING', mode: 'REQUIRED' },
+          { name: 'shop', type: 'STRING', mode: 'REQUIRED' },
           { name: 'billing_date', type: 'DATE', mode: 'REQUIRED' },
           { name: 'page_views', type: 'INTEGER', mode: 'REQUIRED' },
           { name: 'billing_amount', type: 'FLOAT', mode: 'REQUIRED' },
@@ -99,7 +99,7 @@ export class BigQueryService {
   async getBillingRecordsForDate(targetDate: string): Promise<BillingRecord[]> {
     const query = `
       SELECT 
-        shop_domain,
+        shop,
         billing_date,
         page_views,
         billing_amount,
