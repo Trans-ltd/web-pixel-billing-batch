@@ -4,10 +4,9 @@
   "description": "Shopify usage-based billing batch processing system",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "compile": "tsc",
     "dev": "functions-framework --target=processBilling --source=dist --signature-type=http",
-    "start": "npm run build && npm run dev",
-    "gcp-build": "tsc",
+    "start": "npm run compile && npm run dev",
     "test": "jest --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
@@ -28,6 +27,6 @@
     "typescript": "^5.2.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
