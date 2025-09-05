@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+
+# Build outputs
+dist/
+build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+prod.env
+
+# Logs
+logs/
+*.log
+.npm
+.eslintcache
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+
+# Google Cloud
+.gcloud/
+service-account-key.json
+
+# Backup files
+*.backup
+*.bak
