@@ -23,10 +23,15 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Setup credentials file
+      run: |
+        mkdir -p ~/.config/gcloud
+        echo '${{ secrets.GOOGLE_CLOUD_SA_KEY }}' > ~/.config/gcloud/application_default_credentials.json
+        
     - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GOOGLE_CLOUD_SA_KEY }}
+      run: |
+        gcloud auth activate-service-account --key-file=~/.config/gcloud/application_default_credentials.json
+        gcloud config set project $PROJECT_ID
 
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
