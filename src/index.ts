@@ -4,7 +4,7 @@ import { SlackService } from './services/slack';
 
 // Ensure environment variables are set with defaults for Cloud Functions
 process.env.SLACK_BOT_TOKEN = process.env.SLACK_BOT_TOKEN || 'dummy-token-for-startup';
-process.env.SLACK_CHANNEL_ID = process.env.SLACK_CHANNEL_ID || 'C07NR0MM9QK';
+process.env.SLACK_CHANNEL_IDS = process.env.SLACK_CHANNEL_IDS || process.env.SLACK_CHANNEL_ID || 'C07NR0MM9QK';
 
 const billingService = new BillingService();
 const slackService = new SlackService();
