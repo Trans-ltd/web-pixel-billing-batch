@@ -22,17 +22,36 @@ ROLES=(
     "roles/artifactregistry.writer"
 )
 
-# 各ロールを付与
+# Cloud Buildサービスアカウントにも権限を付与
+CLOUD_BUILD_SA="32670171847-compute@developer.gserviceaccount.com"
+echo "Setting up permissions for Cloud Build service account..."
+echo "Cloud Build SA: $CLOUD_BUILD_SA"
+echo ""
+
+echo "Granting roles/cloudbuild.builds.builder to Cloud Build SA..."
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$CLOUD_BUILD_SA" \
+    --role="roles/cloudbuild.builds.builder" \
+    --quiet
+
+if [ $? -eq 0 ]; then
+    echo "✅ Successfully granted roles/cloudbuild.builds.builder to Cloud Build SA"
+else
+    echo "❌ Failed to grant role to Cloud Build SA"
+fi
+echo ""
+
+# GitHub Actionsサービスアカウントに各ロールを付与
 for ROLE in "${ROLES[@]}"
 do
-    echo "Granting $ROLE..."
+    echo "Granting $ROLE to GitHub Actions SA..."
     gcloud projects add-iam-policy-binding $PROJECT_ID \
         --member="serviceAccount:$SERVICE_ACCOUNT" \
         --role="$ROLE" \
         --quiet
     
     if [ $? -eq 0 ]; then
-        echo "✅ Successfully granted $ROLE"
+        echo "✅ Successfully granted $ROLE to GitHub Actions SA"
     else
         echo "❌ Failed to grant $ROLE"
         exit 1

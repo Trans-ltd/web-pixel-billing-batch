@@ -60,29 +60,38 @@ fi
 echo -e "${YELLOW}prod.envファイルを読み込んでいます...${NC}"
 
 # Read prod.env and set GitHub secrets
-while IFS='=' read -r key value || [ -n "$key" ]; do
+while IFS= read -r line || [ -n "$line" ]; do
     # Skip empty lines and comments
-    if [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]]; then
+    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
         continue
     fi
     
-    # Remove leading/trailing whitespace
-    key=$(echo "$key" | xargs)
-    value=$(echo "$value" | xargs)
-    
-    # Remove quotes from value if present
-    value=$(echo "$value" | sed 's/^"//;s/"$//')
-    
-    if [ -n "$key" ] && [ -n "$value" ]; then
-        echo -e "${YELLOW}Setting GitHub secret: $key${NC}"
+    # Split on first = only
+    if [[ "$line" =~ ^([^=]+)=(.*)$ ]]; then
+        key="${BASH_REMATCH[1]}"
+        value="${BASH_REMATCH[2]}"
         
-        # Use gh CLI to set the secret
-        echo "$value" | gh secret set "$key" --body -
+        # Remove leading/trailing whitespace from key
+        key=$(echo "$key" | xargs)
         
-        if [ $? -eq 0 ]; then
-            echo -e "${GREEN}✅ Successfully set $key${NC}"
-        else
-            echo -e "${RED}❌ Failed to set $key${NC}"
+        # Remove leading/trailing whitespace from value
+        value=$(echo "$value" | xargs)
+        
+        # Remove quotes from value if present
+        value=$(echo "$value" | sed 's/^"//;s/"$//')
+        
+        if [ -n "$key" ] && [ -n "$value" ]; then
+            echo -e "${YELLOW}Setting GitHub secret: $key${NC}"
+            echo -e "${YELLOW}  Value: ${value:0:20}...${NC}"  # Show first 20 chars for debugging
+            
+            # Use gh CLI to set the secret
+            echo "$value" | gh secret set "$key" --body -
+            
+            if [ $? -eq 0 ]; then
+                echo -e "${GREEN}✅ Successfully set $key${NC}"
+            else
+                echo -e "${RED}❌ Failed to set $key${NC}"
+            fi
         fi
     fi
 done < "$PROD_ENV_FILE"
