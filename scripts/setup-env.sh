@@ -50,7 +50,7 @@ EXISTING_SECRETS=$(gh secret list --json name -q '.[].name')
 if [ -n "$EXISTING_SECRETS" ]; then
     while IFS= read -r secret; do
         echo -e "${YELLOW}Deleting: $secret${NC}"
-        gh secret delete "$secret" --yes
+        gh secret delete "$secret" 2>/dev/null || echo -e "${RED}  Failed to delete $secret${NC}"
     done <<< "$EXISTING_SECRETS"
     echo -e "${GREEN}✅ 既存のSecretsをすべて削除しました${NC}"
 else
