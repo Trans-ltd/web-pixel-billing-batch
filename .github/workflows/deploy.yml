@@ -71,20 +71,27 @@ jobs:
     - name: Build TypeScript
       run: npm run build
 
+    - name: Create environment variables file
+      run: |
+        cat > .env.yaml <<EOF
+        GOOGLE_CLOUD_PROJECT: "${{ env.PROJECT_ID }}"
+        NODE_ENV: "production"
+        GCP_PROJECT_ID: "${{ secrets.GCP_PROJECT_ID }}"
+        GCP_PRIVATE_KEY_ID: "${{ secrets.GCP_PRIVATE_KEY_ID }}"
+        GCP_PRIVATE_KEY: |
+          ${{ secrets.GCP_PRIVATE_KEY }}
+        GCP_CLIENT_EMAIL: "${{ secrets.GCP_CLIENT_EMAIL }}"
+        GCP_CLIENT_ID: "${{ secrets.GCP_CLIENT_ID }}"
+        GCP_CLIENT_X509_CERT_URL: "${{ secrets.GCP_CLIENT_X509_CERT_URL }}"
+        SLACK_BOT_TOKEN: "${{ secrets.SLACK_BOT_TOKEN }}"
+        SLACK_CHANNEL_IDS: "${{ secrets.SLACK_CHANNEL_IDS }}"
+        SLACK_TEAM_ID: "${{ secrets.SLACK_TEAM_ID }}"
+        BILLING_RATE_PER_MILLION: "${{ secrets.BILLING_RATE_PER_MILLION }}"
+        BILLING_TIME: "${{ secrets.BILLING_TIME }}"
+        TIMEZONE: "${{ secrets.TIMEZONE }}"
+        EOF
+
     - name: Deploy to Cloud Functions
-      env:
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-        GCP_PRIVATE_KEY_ID: ${{ secrets.GCP_PRIVATE_KEY_ID }}
-        GCP_PRIVATE_KEY: ${{ secrets.GCP_PRIVATE_KEY }}
-        GCP_CLIENT_EMAIL: ${{ secrets.GCP_CLIENT_EMAIL }}
-        GCP_CLIENT_ID: ${{ secrets.GCP_CLIENT_ID }}
-        GCP_CLIENT_X509_CERT_URL: ${{ secrets.GCP_CLIENT_X509_CERT_URL }}
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
-        SLACK_CHANNEL_IDS: ${{ secrets.SLACK_CHANNEL_IDS }}
-        SLACK_TEAM_ID: ${{ secrets.SLACK_TEAM_ID }}
-        BILLING_RATE_PER_MILLION: ${{ secrets.BILLING_RATE_PER_MILLION }}
-        BILLING_TIME: ${{ secrets.BILLING_TIME }}
-        TIMEZONE: ${{ secrets.TIMEZONE }}
       run: |
         gcloud functions deploy $FUNCTION_NAME \
           --gen2 \
@@ -97,7 +104,7 @@ jobs:
           --memory=256M \
           --timeout=540s \
           --max-instances=1 \
-          --set-env-vars="GOOGLE_CLOUD_PROJECT=$PROJECT_ID,NODE_ENV=production,GCP_PROJECT_ID=$GCP_PROJECT_ID,GCP_PRIVATE_KEY_ID=$GCP_PRIVATE_KEY_ID,GCP_PRIVATE_KEY=$GCP_PRIVATE_KEY,GCP_CLIENT_EMAIL=$GCP_CLIENT_EMAIL,GCP_CLIENT_ID=$GCP_CLIENT_ID,GCP_CLIENT_X509_CERT_URL=$GCP_CLIENT_X509_CERT_URL,SLACK_BOT_TOKEN=$SLACK_BOT_TOKEN,SLACK_CHANNEL_IDS=$SLACK_CHANNEL_IDS,SLACK_TEAM_ID=$SLACK_TEAM_ID,BILLING_RATE_PER_MILLION=$BILLING_RATE_PER_MILLION,BILLING_TIME=$BILLING_TIME,TIMEZONE=$TIMEZONE"
+          --env-vars-file=.env.yaml
 
     - name: Create or update Cloud Scheduler job
       run: |
