@@ -60,24 +60,35 @@ fi
 echo -e "${YELLOW}prod.envファイルを読み込んでいます...${NC}"
 
 # Read prod.env and set GitHub secrets
-while IFS='=' read -r key value || [ -n "$key" ]; do
+
+while IFS= read -r line || [ -n "$line" ]; do
     # Skip empty lines and comments
-    if [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]]; then
+    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
         continue
     fi
     
-    # Remove leading/trailing whitespace
-    key=$(echo "$key" | xargs)
-    value=$(echo "$value" | xargs)
+    # Check if line contains =
+    if [[ ! "$line" == *"="* ]]; then
+        continue
+    fi
     
-    # Remove quotes from value if present
-    value=$(echo "$value" | sed 's/^"//;s/"$//')
+    # Split on first = using cut
+    key=$(echo "$line" | cut -d'=' -f1)
+    value=$(echo "$line" | cut -d'=' -f2-)
+    
+    # Remove leading/trailing whitespace from key
+    key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    
+    # Remove quotes from value if present (both single and double quotes)
+    value=$(echo "$value" | sed "s/^[\"']//;s/[\"']$//")
     
     if [ -n "$key" ] && [ -n "$value" ]; then
         echo -e "${YELLOW}Setting GitHub secret: $key${NC}"
+        echo -e "${YELLOW}  Value length: ${#value} chars${NC}"
+        echo -e "${YELLOW}  Value preview: ${value:0:20}...${NC}"
         
-        # Use gh CLI to set the secret
-        echo "$value" | gh secret set "$key" --body -
+        # Use the same method as the working script
+        echo "$value" | gh secret set "$key"
         
         if [ $? -eq 0 ]; then
             echo -e "${GREEN}✅ Successfully set $key${NC}"
@@ -86,6 +97,8 @@ while IFS='=' read -r key value || [ -n "$key" ]; do
         fi
     fi
 done < "$PROD_ENV_FILE"
+
+# Temp file no longer needed since we're not using it
 
 echo -e "${GREEN}GitHub環境変数の設定が完了しました！${NC}"
 
