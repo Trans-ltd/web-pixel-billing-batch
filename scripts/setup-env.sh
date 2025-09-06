@@ -43,6 +43,20 @@ if ! gh auth status &> /dev/null; then
     gh auth login
 fi
 
+echo -e "${YELLOW}既存のGitHub Secretsを削除しています...${NC}"
+
+# Delete all existing secrets
+EXISTING_SECRETS=$(gh secret list --json name -q '.[].name')
+if [ -n "$EXISTING_SECRETS" ]; then
+    while IFS= read -r secret; do
+        echo -e "${YELLOW}Deleting: $secret${NC}"
+        gh secret delete "$secret" 2>/dev/null || echo -e "${RED}  Failed to delete $secret${NC}"
+    done <<< "$EXISTING_SECRETS"
+    echo -e "${GREEN}✅ 既存のSecretsをすべて削除しました${NC}"
+else
+    echo -e "${YELLOW}削除するSecretsはありません${NC}"
+fi
+
 echo -e "${YELLOW}prod.envファイルを読み込んでいます...${NC}"
 
 # Read prod.env and set GitHub secrets
